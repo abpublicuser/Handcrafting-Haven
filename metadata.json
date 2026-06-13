@@ -1,0 +1,8 @@
+{
+  "name": "Handcrafting Haven",
+  "description": "My handmade creations",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

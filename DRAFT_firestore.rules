@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTrip(data) {
+      return data.keys().hasAll(['name', 'coverImageUrl', 'userId', 'userName', 'userEmail', 'createdAt']) &&
+        data.keys().size() == 6 &&
+        data.name is string && data.name.size() <= 150 &&
+        data.coverImageUrl is string && data.coverImageUrl.size() <= 1024 &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.userName is string && data.userName.size() <= 150 &&
+        data.userEmail is string && data.userEmail.size() <= 200 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidMoment(data) {
+      return data.keys().hasAll(['tripId', 'date', 'images', 'note', 'userId', 'userName', 'userEmail', 'createdAt']) &&
+        data.keys().size() == 8 &&
+        data.tripId is string && data.tripId.size() <= 128 &&
+        data.date is string && data.date.size() <= 50 &&
+        data.images is list && data.images.size() <= 50 &&
+        data.note is string && data.note.size() <= 5000 &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.userName is string && data.userName.size() <= 150 &&
+        data.userEmail is string && data.userEmail.size() <= 200 &&
+        data.createdAt is timestamp;
+    }
+    
+    function isOwner(data) {
+      return data.userId == request.auth.uid;
+    }
+
+    match /trips/{tripId} {
+      // Allow read for everyone (Explore displays all trips).
+      // Note: This collection contains userEmail (PII). Since Explore requires showing all trips
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(tripId) && isValidTrip(incoming()) && incoming().createdAt == request.time;
+      allow update: if (
+        isSignedIn() && isValidId(tripId) && isOwner(existing()) && isValidTrip(incoming()) && 
+        incoming().userId == existing().userId && 
+        incoming().createdAt == existing().createdAt
+      );
+      allow delete: if isSignedIn() && isValidId(tripId) && isOwner(existing());
+    }
+
+    match /moments/{momentId} {
+      allow read: if isSignedIn();
+      allow create: if (
+        isSignedIn() && isValidId(momentId) && isValidMoment(incoming()) &&
+        incoming().createdAt == request.time &&
+        exists(/databases/$(database)/documents/trips/$(incoming().tripId)) &&
+        get(/databases/$(database)/documents/trips/$(incoming().tripId)).data.userId == request.auth.uid
+      );
+      allow update: if (
+        isSignedIn() && isValidId(momentId) && isOwner(existing()) && isValidMoment(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().tripId == existing().tripId
+      );
+      allow delete: if isSignedIn() && isValidId(momentId) && isOwner(existing());
+    }
+  }
+}

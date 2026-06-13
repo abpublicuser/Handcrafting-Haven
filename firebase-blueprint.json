@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "Trip": {
+      "title": "Trip",
+      "description": "A user's trip",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "coverImageUrl": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "visibility": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["name", "coverImageUrl", "userId", "userName", "visibility", "createdAt"]
+    },
+    "Moment": {
+      "title": "Moment",
+      "description": "A moment in a trip",
+      "type": "object",
+      "properties": {
+        "tripId": { "type": "string" },
+        "date": { "type": "string" },
+        "images": { "type": "array" },
+        "note": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "visibility": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["tripId", "date", "images", "note", "userId", "userName", "visibility", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "schema": { "$ref": "#/entities/Trip" },
+      "description": "User trips"
+    },
+    "/moments/{momentId}": {
+      "schema": { "$ref": "#/entities/Moment" },
+      "description": "Trip moments"
+    }
+  }
+}
